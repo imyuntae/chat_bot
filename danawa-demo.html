@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다나와 - 노트북 검색</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Malgun Gothic', sans-serif;
+            background-color: #f7f8fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 헤더 */
+        .header {
+            background-color: #fff;
+            border-bottom: 2px solid #ff6b00;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-top {
+            background-color: #ff6b00;
+            color: white;
+            padding: 8px 0;
+            font-size: 12px;
+        }
+
+        .header-top-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-top-left {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header-top-right {
+            display: flex;
+            gap: 15px;
+        }
+
+        .header-top a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.9;
+        }
+
+        .header-top a:hover {
+            opacity: 1;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 900;
+            color: #ff6b00;
+            text-decoration: none;
+            letter-spacing: -1px;
+        }
+
+        .logo:hover {
+            color: #e55a00;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 650px;
+            margin: 0 40px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 120px 14px 20px;
+            border: 2px solid #ff6b00;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #e55a00;
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+        }
+
+        .search-button {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #ff6b00;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .search-button:hover {
+            background-color: #e55a00;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+        }
+
+        .header-nav a {
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: #ff6b00;
+        }
+
+        .cart-icon {
+            position: relative;
+            font-size: 20px;
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ff6b00;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* 브레드크럼 */
+        .breadcrumb {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            color: #ff6b00;
+        }
+
+        /* 메인 컨테이너 */
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        /* 사이드바 필터 */
+        .sidebar {
+            width: 260px;
+            background-color: #fff;
+            border-radius: 4px;
+            padding: 20px;
+            height: fit-content;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e0e0e0;
+        }
+
+        .filter-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .filter-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .filter-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-title::before {
+            content: '';
+            width: 3px;
+            height: 15px;
+            background-color: #ff6b00;
+            border-radius: 2px;
+        }
+
+        .filter-option {
+            padding: 10px 0;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-option::before {
+            content: '☐';
+            font-size: 16px;
+            color: #ccc;
+        }
+
+        .filter-option:hover {
+            color: #ff6b00;
+        }
+
+        .filter-option.active {
+            color: #ff6b00;
+            font-weight: 600;
+        }
+
+        .filter-option.active::before {
+            content: '☑';
+            color: #ff6b00;
+        }
+
+        /* 제품 리스트 */
+        .product-list {
+            flex: 1;
+        }
+
+        .list-header {
+            background-color: #fff;
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+
+        .result-count {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .sort-options {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .sort-options select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .product-item {
+            background-color: #fff;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e0e0e0;
+            display: flex;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .product-item:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+            border-color: #ff6b00;
+        }
+
+        .product-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: #ff6b00;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .product-image {
+            width: 220px;
+            height: 165px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid #e0e0e0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image::before {
+            content: '💻';
+            font-size: 48px;
+            opacity: 0.3;
+        }
+
+        .product-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-name {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .product-name:hover {
+            color: #ff6b00;
+        }
+
+        .product-spec {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.8;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .spec-item {
+            background-color: #f8f9fa;
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .product-price-section {
+            margin-top: auto;
+        }
+
+        .product-price {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff6b00;
+            margin-bottom: 8px;
+        }
+
+        .product-price-original {
+            font-size: 16px;
+            color: #999;
+            text-decoration: line-through;
+            margin-left: 10px;
+        }
+
+        .product-discount {
+            display: inline-block;
+            background-color: #ff4757;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .product-rating {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .rating-star {
+            color: #ffa500;
+            font-size: 16px;
+        }
+
+        .product-shipping {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        /* 챗봇 위젯 스타일 */
+        #channel-chatbot-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        #chatbot-button {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6336FF 0%, #5229E6 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(99, 54, 255, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: all 0.3s ease;
+        }
+
+        #chatbot-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(99, 54, 255, 0.5);
+        }
+
+        #chatbot-window {
+            position: absolute;
+            bottom: 84px;
+            right: 0;
+            width: 420px;
+            height: 650px;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #chatbot-window.open {
+            display: flex;
+        }
+
+        #chatbot-header {
+            background: linear-gradient(135deg, #6336FF 0%, #5229E6 100%);
+            color: white;
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #chatbot-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        #chatbot-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        #chatbot-close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        #chatbot-iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .product-item {
+                flex-direction: column;
+            }
+
+            .product-image {
+                width: 100%;
+                height: 200px;
+            }
+
+            .list-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            #chatbot-window {
+                width: 100vw;
+                height: 100vh;
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+            }
+
+            #channel-chatbot-widget {
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="header-top">
+            <div class="header-top-container">
+                <div class="header-top-left">
+                    <a href="#">회원가입</a>
+                    <a href="#">로그인</a>
+                    <a href="#">고객센터</a>
+                </div>
+                <div class="header-top-right">
+                    <a href="#">최근본상품</a>
+                    <a href="#">찜한상품</a>
+                </div>
+            </div>
+        </div>
+        <div class="header-container">
+            <a href="#" class="logo">다나와</a>
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="노트북을 검색하세요" value="노트북">
+                <button class="search-button">검색</button>
+            </div>
+            <nav class="header-nav">
+                <a href="#">카테고리</a>
+                <a href="#">특가</a>
+                <a href="#">랭킹</a>
+                <a href="#" class="cart-icon">
+                    🛒
+                    <span class="cart-badge">3</span>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 브레드크럼 -->
+    <div class="breadcrumb">
+        <a href="#">홈</a> > <a href="#">노트북/PC</a> > <a href="#">노트북</a> > 검색결과
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="container">
+        <!-- 사이드바 필터 -->
+        <aside class="sidebar">
+            <div class="filter-section">
+                <div class="filter-title">가격대</div>
+                <div class="filter-option">100만원 미만</div>
+                <div class="filter-option active">100만원 ~ 200만원</div>
+                <div class="filter-option">200만원 ~ 300만원</div>
+                <div class="filter-option">300만원 이상</div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-title">브랜드</div>
+                <div class="filter-option active">삼성</div>
+                <div class="filter-option">LG</div>
+                <div class="filter-option">레노버</div>
+                <div class="filter-option">HP</div>
+                <div class="filter-option">ASUS</div>
+                <div class="filter-option">애플</div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-title">CPU</div>
+                <div class="filter-option">인텔 코어 i5</div>
+                <div class="filter-option active">인텔 코어 i7</div>
+                <div class="filter-option">AMD 라이젠 5</div>
+                <div class="filter-option">AMD 라이젠 7</div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-title">화면 크기</div>
+                <div class="filter-option">13인치</div>
+                <div class="filter-option">14인치</div>
+                <div class="filter-option active">15인치</div>
+                <div class="filter-option">16인치 이상</div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-title">용도</div>
+                <div class="filter-option">게이밍</div>
+                <div class="filter-option">사무용</div>
+                <div class="filter-option">영상 편집</div>
+                <div class="filter-option">학생용</div>
+            </div>
+        </aside>
+
+        <!-- 제품 리스트 -->
+        <main class="product-list">
+            <div class="list-header">
+                <div>
+                    <h1 class="page-title">노트북 검색 결과</h1>
+                    <div class="result-count">총 <strong>1,234</strong>개의 제품이 검색되었습니다.</div>
+                </div>
+                <div class="sort-options">
+                    <span style="font-size: 14px; color: #666;">정렬:</span>
+                    <select>
+                        <option>인기순</option>
+                        <option>가격낮은순</option>
+                        <option>가격높은순</option>
+                        <option>리뷰많은순</option>
+                        <option>최신순</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 샘플 제품 1 -->
+            <div class="product-item">
+                <span class="product-badge">특가</span>
+                <div class="product-image"></div>
+                <div class="product-info">
+                    <div class="product-name">삼성전자 갤럭시북4 프로 NT960XFG-K71A</div>
+                    <div class="product-spec">
+                        <span class="spec-item">인텔 코어 i7-1355U</span>
+                        <span class="spec-item">16GB RAM</span>
+                        <span class="spec-item">512GB SSD</span>
+                        <span class="spec-item">16인치 QHD+</span>
+                        <span class="spec-item">Windows 11 Home</span>
+                        <span class="spec-item">1.56kg</span>
+                    </div>
+                    <div class="product-price-section">
+                        <div>
+                            <span class="product-price">1,890,000원</span>
+                            <span class="product-price-original">2,190,000원</span>
+                            <span class="product-discount">14%↓</span>
+                        </div>
+                        <div class="product-rating">
+                            <span class="rating-star">⭐⭐⭐⭐⭐</span>
+                            <span>4.5점</span>
+                            <span>💬 리뷰 234개</span>
+                        </div>
+                        <div class="product-shipping">🚚 무료배송</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 샘플 제품 2 -->
+            <div class="product-item">
+                <div class="product-image"></div>
+                <div class="product-info">
+                    <div class="product-name">LG전자 그램17 17Z90R-GA5DK</div>
+                    <div class="product-spec">
+                        <span class="spec-item">인텔 코어 i5-1340P</span>
+                        <span class="spec-item">16GB RAM</span>
+                        <span class="spec-item">512GB SSD</span>
+                        <span class="spec-item">17인치 WQXGA</span>
+                        <span class="spec-item">Windows 11 Home</span>
+                        <span class="spec-item">1.35kg</span>
+                    </div>
+                    <div class="product-price-section">
+                        <div>
+                            <span class="product-price">1,650,000원</span>
+                        </div>
+                        <div class="product-rating">
+                            <span class="rating-star">⭐⭐⭐⭐⭐</span>
+                            <span>4.7점</span>
+                            <span>💬 리뷰 189개</span>
+                        </div>
+                        <div class="product-shipping">🚚 무료배송</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 샘플 제품 3 -->
+            <div class="product-item">
+                <span class="product-badge">신상품</span>
+                <div class="product-image"></div>
+                <div class="product-info">
+                    <div class="product-name">레노버 ThinkPad X1 Carbon Gen 11</div>
+                    <div class="product-spec">
+                        <span class="spec-item">인텔 코어 i7-1365U</span>
+                        <span class="spec-item">16GB RAM</span>
+                        <span class="spec-item">1TB SSD</span>
+                        <span class="spec-item">14인치 WUXGA</span>
+                        <span class="spec-item">Windows 11 Pro</span>
+                        <span class="spec-item">1.12kg</span>
+                    </div>
+                    <div class="product-price-section">
+                        <div>
+                            <span class="product-price">2,190,000원</span>
+                        </div>
+                        <div class="product-rating">
+                            <span class="rating-star">⭐⭐⭐⭐⭐</span>
+                            <span>4.6점</span>
+                            <span>💬 리뷰 156개</span>
+                        </div>
+                        <div class="product-shipping">🚚 무료배송</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 샘플 제품 4 -->
+            <div class="product-item">
+                <div class="product-image"></div>
+                <div class="product-info">
+                    <div class="product-name">ASUS 젠북 14 OLED UX3402ZA</div>
+                    <div class="product-spec">
+                        <span class="spec-item">AMD 라이젠 7 7730U</span>
+                        <span class="spec-item">16GB RAM</span>
+                        <span class="spec-item">512GB SSD</span>
+                        <span class="spec-item">14인치 OLED</span>
+                        <span class="spec-item">Windows 11 Home</span>
+                        <span class="spec-item">1.39kg</span>
+                    </div>
+                    <div class="product-price-section">
+                        <div>
+                            <span class="product-price">1,450,000원</span>
+                            <span class="product-price-original">1,690,000원</span>
+                            <span class="product-discount">14%↓</span>
+                        </div>
+                        <div class="product-rating">
+                            <span class="rating-star">⭐⭐⭐⭐⭐</span>
+                            <span>4.4점</span>
+                            <span>💬 리뷰 278개</span>
+                        </div>
+                        <div class="product-shipping">🚚 무료배송</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 샘플 제품 5 -->
+            <div class="product-item">
+                <span class="product-badge">인기</span>
+                <div class="product-image"></div>
+                <div class="product-info">
+                    <div class="product-name">HP 빅터스 16-r0070TX</div>
+                    <div class="product-spec">
+                        <span class="spec-item">인텔 코어 i7-13700H</span>
+                        <span class="spec-item">16GB RAM</span>
+                        <span class="spec-item">512GB SSD</span>
+                        <span class="spec-item">RTX 4060</span>
+                        <span class="spec-item">16.1인치 FHD 144Hz</span>
+                        <span class="spec-item">Windows 11 Home</span>
+                        <span class="spec-item">2.35kg</span>
+                    </div>
+                    <div class="product-price-section">
+                        <div>
+                            <span class="product-price">1,890,000원</span>
+                        </div>
+                        <div class="product-rating">
+                            <span class="rating-star">⭐⭐⭐⭐⭐</span>
+                            <span>4.5점</span>
+                            <span>💬 리뷰 312개</span>
+                        </div>
+                        <div class="product-shipping">🚚 무료배송</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 샘플 제품 6 -->
+            <div class="product-item">
+                <div class="product-image"></div>
+                <div class="product-info">
+                    <div class="product-name">애플 맥북 프로 14인치 M3 Pro</div>
+                    <div class="product-spec">
+                        <span class="spec-item">Apple M3 Pro</span>
+                        <span class="spec-item">18GB RAM</span>
+                        <span class="spec-item">512GB SSD</span>
+                        <span class="spec-item">14.2인치 Liquid Retina XDR</span>
+                        <span class="spec-item">macOS Sonoma</span>
+                        <span class="spec-item">1.61kg</span>
+                    </div>
+                    <div class="product-price-section">
+                        <div>
+                            <span class="product-price">3,290,000원</span>
+                        </div>
+                        <div class="product-rating">
+                            <span class="rating-star">⭐⭐⭐⭐⭐</span>
+                            <span>4.8점</span>
+                            <span>💬 리뷰 445개</span>
+                        </div>
+                        <div class="product-shipping">🚚 무료배송</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 챗봇 위젯 -->
+    <div id="channel-chatbot-widget">
+        <div id="chatbot-window">
+            <div id="chatbot-header">
+                <h3>💻 테크 전문 쇼핑 가이드</h3>
+                <button id="chatbot-close">×</button>
+            </div>
+            <iframe 
+                id="chatbot-iframe"
+                src=""
+                title="테크 전문 쇼핑 가이드 챗봇"
+            ></iframe>
+        </div>
+        <button id="chatbot-button" aria-label="챗봇 열기">💬</button>
+    </div>
+
+    <script>
+        // Streamlit 서버 URL 설정
+        // URL 파라미터에서 streamlit_url을 읽거나, 기본값 사용
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamlitUrl = urlParams.get('streamlit_url') || 'http://localhost:8501';
+        
+        // iframe src 설정
+        const chatbotIframe = document.getElementById('chatbot-iframe');
+        chatbotIframe.src = streamlitUrl;
+        
+        console.log('챗봇 URL:', streamlitUrl);
+        console.log('URL 파라미터로 streamlit_url을 지정하려면: ?streamlit_url=https://your-app.streamlit.app');
+        
+        // 챗봇 열기/닫기
+        const chatbotButton = document.getElementById('chatbot-button');
+        const chatbotWindow = document.getElementById('chatbot-window');
+        const chatbotClose = document.getElementById('chatbot-close');
+
+        chatbotButton.addEventListener('click', function() {
+            chatbotWindow.classList.toggle('open');
+            if (chatbotWindow.classList.contains('open')) {
+                chatbotButton.textContent = '✕';
+            } else {
+                chatbotButton.textContent = '💬';
+            }
+        });
+
+        chatbotClose.addEventListener('click', function() {
+            chatbotWindow.classList.remove('open');
+            chatbotButton.textContent = '💬';
+        });
+
+        // 검색 기능 (데모용) + 챗봇 자동 메시지 전송
+        function handleSearch() {
+            const query = document.querySelector('.search-input').value.trim();
+            
+            // 검색어가 비어있으면 알림만 표시
+            if (!query) {
+                alert('검색어를 입력해주세요.');
+                return;
+            }
+            
+            // 노트북, PC, 데스크탑 키워드 감지
+            const keywords = ['노트북', '랩탑', 'laptop', 'notebook', 'pc', '컴퓨터', '데스크탑', 'desktop', '데스크톱'];
+            const queryLower = query.toLowerCase();
+            const hasKeyword = keywords.some(keyword => queryLower.includes(keyword.toLowerCase()));
+            
+            if (hasKeyword) {
+                // 챗봇이 열려있지 않으면 자동으로 열기
+                if (!chatbotWindow.classList.contains('open')) {
+                    chatbotWindow.classList.add('open');
+                    chatbotButton.textContent = '✕';
+                }
+                
+                // 챗봇 iframe에 검색어 전달 (URL 쿼리 파라미터로)
+                const iframe = document.getElementById('chatbot-iframe');
+                const currentUrl = new URL(iframe.src);
+                currentUrl.searchParams.set('search', query);
+                iframe.src = currentUrl.toString();
+                
+                // iframe이 로드될 때까지 대기
+                iframe.onload = function() {
+                    console.log('챗봇 iframe 로드 완료');
+                };
+                
+                // iframe이 로드될 때까지 잠시 대기
+                setTimeout(() => {
+                    // iframe이 로드되면 메시지 전송 (postMessage 사용)
+                    try {
+                        iframe.contentWindow.postMessage({
+                            type: 'search_query',
+                            query: query
+                        }, '*');
+                    } catch (e) {
+                        // CORS 오류가 발생할 수 있으므로 무시 (URL 파라미터로 이미 전달됨)
+                        console.log('postMessage 전송 실패 (정상):', e);
+                    }
+                }, 500);
+            } else {
+                // 키워드가 없으면 일반 검색 알림만 표시
+                alert(`"${query}" 검색 기능은 데모용입니다.`);
+            }
+        }
+        
+        // 검색 버튼 클릭 이벤트
+        document.querySelector('.search-button').addEventListener('click', handleSearch);
+        
+        // Enter 키 입력 이벤트
+        document.querySelector('.search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+
+        // 필터 옵션 클릭 (데모용)
+        document.querySelectorAll('.filter-option').forEach(option => {
+            option.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (선택사항 - CSV 파일을 GitHub에 업로드하려면 이 줄을 제거하세요)
+# electronics_data.csv
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
