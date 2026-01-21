@@ -937,8 +937,41 @@ st.title("💻 테크 전문 쇼핑 가이드 챗봇")
 if not st.session_state.gemini_api_key or not st.session_state.tavily_api_key:
     st.error("⚠️ API 키가 설정되지 않았습니다.")
 else:
-    # 초기 환영 메시지 (채팅 히스토리가 비어있을 때)
-    if len(st.session_state.chat_history) == 0:
+    # URL 쿼리 파라미터에서 초기 검색어 읽기 (검색창에서 전달된 경우)
+    query_params = st.query_params
+    initial_search = query_params.get("search", None)
+    
+    # 초기 검색어가 있고, 이전에 처리한 검색어와 다른 경우에만 처리
+    if initial_search:
+        last_processed_search = st.session_state.get('last_processed_search', None)
+        
+        # 새로운 검색어이거나 이전 검색어와 다른 경우
+        if initial_search != last_processed_search:
+            # 이전 검색어 저장
+            st.session_state.last_processed_search = initial_search
+            
+            # 검색어에서 의도 감지
+            intent = detect_intent(initial_search)
+            if intent:
+                # 대화 상태 초기화 (새로운 검색이므로)
+                st.session_state.user_intent = intent
+                st.session_state.conversation_state = 'usage_asked'
+                st.session_state.user_usage = None
+                st.session_state.user_software = None
+                st.session_state.user_budget = None
+                st.session_state.user_weight_preference = None
+                st.session_state.user_portable_need = None
+                st.session_state.recommended_products = []
+                st.session_state.spec_info = None
+                st.session_state.chat_history = []  # 채팅 히스토리 초기화
+                
+                # 챗봇이 먼저 말을 걸도록 메시지 추가
+                bot_response = f"안녕하세요! 검색창에서 '{initial_search}'를 입력하신 것을 확인했습니다. {intent}를 찾고 계시는군요! 최적의 제품을 추천해드리기 위해 용도가 무엇인지 여쭤봐도 될까요? (예: 게임용, 영상 편집용, 사무용, 인강용)"
+                st.session_state.chat_history.append({'role': 'bot', 'content': bot_response})
+                st.rerun()
+    
+    # 초기 환영 메시지 (채팅 히스토리가 비어있고 검색어도 없을 때)
+    if len(st.session_state.chat_history) == 0 and not initial_search:
         welcome_msg = "안녕하세요! 💻 테크 전문 쇼핑 가이드 챗봇입니다. PC나 노트북에 대해 궁금한 점이 있으시면 언제든 말씀해주세요. 어떤 제품을 찾고 계신가요?"
         st.session_state.chat_history.append({'role': 'bot', 'content': welcome_msg})
     
