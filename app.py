@@ -99,32 +99,34 @@ st.markdown("""
         position: relative;
     }
     
-    .danawa-search-input {
-        width: 100%;
-        padding: 14px 120px 14px 20px;
-        border: 2px solid #ff6b00;
-        border-radius: 4px;
-        font-size: 16px;
-        outline: none;
+    /* Streamlit 검색창 스타일 */
+    .danawa-search-box .stTextInput > div > div > input {
+        padding: 14px 20px !important;
+        border: 2px solid #ff6b00 !important;
+        border-radius: 4px !important;
+        font-size: 16px !important;
+        width: 100% !important;
     }
     
-    .danawa-search-button {
-        position: absolute;
-        right: 4px;
-        top: 50%;
-        transform: translateY(-50%);
-        background-color: #ff6b00;
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 15px;
-        font-weight: 600;
+    .danawa-search-box .stTextInput > div > div > input:focus {
+        border-color: #e55a00 !important;
+        box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1) !important;
     }
     
-    .danawa-search-button:hover {
-        background-color: #e55a00;
+    .danawa-search-box .stButton > button {
+        background-color: #ff6b00 !important;
+        color: white !important;
+        border: none !important;
+        padding: 10px 24px !important;
+        border-radius: 4px !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    .danawa-search-box .stButton > button:hover {
+        background-color: #e55a00 !important;
     }
     
     /* 제품 리스트 영역 */
@@ -1161,7 +1163,7 @@ if initial_search:
             st.session_state.chat_history.append({'role': 'bot', 'content': bot_response})
             st.rerun()
 
-# 다나와 스타일 헤더 HTML
+# 다나와 스타일 헤더 HTML (검색창은 Streamlit 위젯 사용)
 header_html = """
 <div class="danawa-header">
     <div class="danawa-header-top">
@@ -1175,9 +1177,8 @@ header_html = """
     </div>
     <div class="danawa-header-container">
         <a href="#" class="danawa-logo">다나와</a>
-        <div class="danawa-search-box">
-            <input type="text" class="danawa-search-input" id="danawa-search-input" placeholder="노트북을 검색하세요" value="">
-            <button class="danawa-search-button" onclick="handleDanawaSearch()">검색</button>
+        <div class="danawa-search-box" id="danawa-search-container">
+            <!-- 검색창은 Streamlit 위젯으로 대체 -->
         </div>
         <nav style="display: flex; gap: 25px; align-items: center;">
             <a href="#" style="color: #333; text-decoration: none; font-size: 14px; font-weight: 500;">카테고리</a>
@@ -1186,34 +1187,6 @@ header_html = """
         </nav>
     </div>
 </div>
-
-<script>
-function handleDanawaSearch() {
-    const query = document.getElementById('danawa-search-input').value.trim();
-    if (!query) return;
-    
-    const keywords = ['노트북', '랩탑', 'laptop', 'notebook', 'pc', '컴퓨터', '데스크탑', 'desktop'];
-    const queryLower = query.toLowerCase();
-    const hasKeyword = keywords.some(keyword => queryLower.includes(keyword.toLowerCase()));
-    
-    if (hasKeyword) {
-        // Streamlit의 챗봇에 검색어 전달
-        window.location.href = window.location.pathname + '?search=' + encodeURIComponent(query);
-    }
-}
-
-// Enter 키 이벤트
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('danawa-search-input');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                handleDanawaSearch();
-            }
-        });
-    }
-});
-</script>
 """
 
 # 플로팅 챗봇 버튼 및 창 HTML
@@ -1290,12 +1263,51 @@ else:
     # 다나와 헤더 표시
     st.markdown(header_html, unsafe_allow_html=True)
     
+    # 검색창 (Streamlit 위젯 사용)
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        search_query = st.text_input("", placeholder="노트북을 검색하세요", key="header_search", label_visibility="collapsed")
+    with col2:
+        search_clicked = st.button("검색", key="header_search_btn", use_container_width=True)
+    
+    # 검색창에서 검색어 입력 시 처리
+    if search_clicked or search_query:
+        query = search_query.strip() if search_query else ""
+        if query:
+            keywords = ['노트북', '랩탑', 'laptop', 'notebook', 'pc', '컴퓨터', '데스크탑', 'desktop']
+            query_lower = query.lower()
+            has_keyword = any(kw in query_lower for kw in keywords)
+            
+            if has_keyword:
+                intent = detect_intent(query)
+                if intent:
+                    st.session_state.user_intent = intent
+                    st.session_state.conversation_state = 'usage_asked'
+                    st.session_state.user_usage = None
+                    st.session_state.user_software = None
+                    st.session_state.user_budget = None
+                    st.session_state.user_weight_preference = None
+                    st.session_state.user_portable_need = None
+                    st.session_state.recommended_products = []
+                    st.session_state.spec_info = None
+                    st.session_state.chat_history = []
+                    st.session_state.last_processed_search = query
+                    
+                    bot_response = f"안녕하세요! 검색창에서 '{query}'를 입력하신 것을 확인했습니다. {intent}를 찾고 계시는군요! 최적의 제품을 추천해드리기 위해 용도가 무엇인지 여쭤봐도 될까요? (예: 게임용, 영상 편집용, 사무용, 인강용)"
+                    st.session_state.chat_history.append({'role': 'bot', 'content': bot_response})
+                    st.rerun()
+    
     # 제품 리스트 컨테이너 시작
     st.markdown('<div class="product-list-container">', unsafe_allow_html=True)
     st.markdown('<div class="product-list-main">', unsafe_allow_html=True)
     
     # 페이지 제목
     st.markdown('<h1 style="font-size: 22px; font-weight: 700; color: #333; margin-bottom: 15px;">노트북 검색 결과</h1>', unsafe_allow_html=True)
+    
+    # 초기 환영 메시지 (채팅 히스토리가 비어있을 때)
+    if len(st.session_state.chat_history) == 0:
+        welcome_msg = "안녕하세요! 💻 테크 전문 쇼핑 가이드 챗봇입니다. PC나 노트북에 대해 궁금한 점이 있으시면 언제든 말씀해주세요. 어떤 제품을 찾고 계신가요?"
+        st.session_state.chat_history.append({'role': 'bot', 'content': welcome_msg})
     
     # 채팅 히스토리 표시
     for message in st.session_state.chat_history:
@@ -1875,5 +1887,21 @@ else:
     st.markdown('</div>', unsafe_allow_html=True)  # product-list-main 닫기
     st.markdown('</div>', unsafe_allow_html=True)  # product-list-container 닫기
     
-    # 플로팅 챗봇 버튼 및 창 추가
-    st.markdown(floating_chatbot_html, unsafe_allow_html=True)
+    # 플로팅 챗봇 버튼 추가 (채팅은 페이지 내에서 직접 표시)
+    st.markdown("""
+    <div class="floating-chatbot">
+        <button class="floating-chatbot-button" onclick="scrollToChat()" id="chatbot-toggle-btn" title="챗봇으로 이동">💬</button>
+    </div>
+    <script>
+    function scrollToChat() {
+        const chatInput = document.querySelector('.stChatInput');
+        if (chatInput) {
+            chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                const input = chatInput.querySelector('input');
+                if (input) input.focus();
+            }, 300);
+        }
+    }
+    </script>
+    """, unsafe_allow_html=True)
