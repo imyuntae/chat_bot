@@ -866,42 +866,124 @@
 
     <script>
         // Streamlit 서버 URL 설정
-        // 프록시 서버를 통해 iframe 임베딩 (X-Frame-Options 헤더 제거)
         const urlParams = new URLSearchParams(window.location.search);
-        // 프록시 서버 URL (로컬에서 실행 중인 프록시 서버)
-        const proxyUrl = urlParams.get('proxy_url') || 'http://localhost:8080';
         const streamlitUrl = urlParams.get('streamlit_url') || 'https://chatbot-cv8vu6jdzxfulenualhxaa.streamlit.app';
         
-        // iframe src 설정 (프록시 서버 사용)
-        const chatbotIframe = document.getElementById('chatbot-iframe');
-        chatbotIframe.src = proxyUrl;
-        
-        console.log('프록시 서버 URL:', proxyUrl);
         console.log('Streamlit Cloud URL:', streamlitUrl);
-        console.log('프록시 서버를 실행하려면: python proxy_server.py');
+        
+        // 챗봇 팝업 창 변수
+        let chatbotPopup = null;
         
         // 챗봇 열기/닫기
         const chatbotButton = document.getElementById('chatbot-button');
         const chatbotWindow = document.getElementById('chatbot-window');
         const chatbotClose = document.getElementById('chatbot-close');
 
-        chatbotButton.addEventListener('click', function() {
-            chatbotWindow.classList.toggle('open');
-            if (chatbotWindow.classList.contains('open')) {
-                chatbotButton.textContent = '✕';
-            } else {
-                chatbotButton.textContent = '💬';
+        // 챗봇 팝업 창 열기
+        function openChatbotPopup(searchQuery = null) {
+            // 이미 열려있는 팝업이 있으면 닫기
+            if (chatbotPopup && !chatbotPopup.closed) {
+                chatbotPopup.close();
             }
-        });
-
-        chatbotClose.addEventListener('click', function() {
+            
+            // 팝업 창 크기 설정 (작은 창)
+            const width = 450;
+            const height = 700;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            
+            // Streamlit URL 설정
+            let streamlitUrl = urlParams.get('streamlit_url') || 'https://chatbot-cv8vu6jdzxfulenualhxaa.streamlit.app';
+            
+            // 검색어가 있으면 URL에 추가
+            if (searchQuery) {
+                const urlWithSearch = new URL(streamlitUrl);
+                urlWithSearch.searchParams.set('search', searchQuery);
+                streamlitUrl = urlWithSearch.toString();
+            }
+            
+            // 고유한 창 이름 생성 (타임스탬프 사용)
+            const windowName = 'chatbot_' + Date.now();
+            
+            // 팝업 창 옵션 (새 탭이 아닌 팝업 창으로 강제)
+            const popupFeatures = [
+                `width=${width}`,
+                `height=${height}`,
+                `left=${left}`,
+                `top=${top}`,
+                'resizable=yes',
+                'scrollbars=yes',
+                'status=no',
+                'toolbar=no',
+                'menubar=no',
+                'location=no',
+                'directories=no',
+                'fullscreen=no',
+                'dependent=yes'  // 부모 창에 종속되도록
+            ].join(',');
+            
+            // 팝업 창 열기
+            chatbotPopup = window.open(
+                streamlitUrl,
+                windowName,
+                popupFeatures
+            );
+            
+            // 팝업이 차단되었는지 확인
+            if (!chatbotPopup || chatbotPopup.closed || typeof chatbotPopup.closed === 'undefined') {
+                alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+                chatbotButton.textContent = '💬';
+            } else {
+                chatbotButton.textContent = '✕';
+                // 팝업 창이 새 탭으로 열렸는지 확인 (너무 크면 새 탭일 가능성)
+                setTimeout(function() {
+                    if (chatbotPopup && !chatbotPopup.closed) {
+                        try {
+                            // 팝업 창의 크기를 확인하여 새 탭인지 판단
+                            if (chatbotPopup.innerWidth && chatbotPopup.innerWidth > width + 100) {
+                                // 새 탭으로 열린 것 같으면 닫고 다시 시도
+                                chatbotPopup.close();
+                                alert('팝업이 새 탭으로 열렸습니다. 브라우저 팝업 차단 설정을 확인해주세요.');
+                                chatbotButton.textContent = '💬';
+                            }
+                        } catch (e) {
+                            // 크로스 오리진 에러는 무시 (정상)
+                        }
+                    }
+                }, 500);
+            }
+        }
+        
+        // 챗봇 팝업 창 닫기
+        function closeChatbotPopup() {
             if (chatbotPopup && !chatbotPopup.closed) {
                 chatbotPopup.close();
                 chatbotPopup = null;
             }
-            chatbotWindow.classList.remove('open');
             chatbotButton.textContent = '💬';
+        }
+
+        chatbotButton.addEventListener('click', function() {
+            if (chatbotPopup && !chatbotPopup.closed) {
+                // 이미 열려있으면 닫기
+                closeChatbotPopup();
+            } else {
+                // 열려있지 않으면 열기
+                openChatbotPopup();
+            }
         });
+
+        chatbotClose.addEventListener('click', function() {
+            closeChatbotPopup();
+        });
+        
+        // 팝업 창이 닫혔는지 주기적으로 확인
+        setInterval(function() {
+            if (chatbotPopup && chatbotPopup.closed) {
+                chatbotButton.textContent = '💬';
+                chatbotPopup = null;
+            }
+        }, 500);
 
         // 검색 기능 (데모용) + 챗봇 자동 메시지 전송
         function handleSearch() {
@@ -919,16 +1001,8 @@
             const hasKeyword = keywords.some(keyword => queryLower.includes(keyword.toLowerCase()));
             
             if (hasKeyword) {
-                // 챗봇이 열려있지 않으면 자동으로 열기
-                if (!chatbotWindow.classList.contains('open')) {
-                    chatbotWindow.classList.add('open');
-                    chatbotButton.textContent = '✕';
-                }
-                
-                // 프록시 서버를 통해 검색어 전달 (URL 쿼리 파라미터로)
-                const urlWithSearch = new URL(proxyUrl);
-                urlWithSearch.searchParams.set('search', query);
-                chatbotIframe.src = urlWithSearch.toString();
+                // 챗봇 팝업 창 열기 (검색어 포함)
+                openChatbotPopup(query);
             } else {
                 // 키워드가 없으면 일반 검색 알림만 표시
                 alert(`"${query}" 검색 기능은 데모용입니다.`);
