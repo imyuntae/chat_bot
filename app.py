@@ -24,24 +24,24 @@ GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')  # 기본 모델
 # GEMINI_API_KEY = 'your-gemini-api-key-here'
 # TAVILY_API_KEY = 'your-tavily-api-key-here'
 
-# 페이지 설정 (챗봇 위젯 모드)
+# 페이지 설정 (다나와 스타일 통합 페이지)
 st.set_page_config(
-    page_title="테크 전문 쇼핑 가이드",
+    page_title="다나와 - 노트북 검색",
     page_icon="💻",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 채널톡 스타일 CSS (챗봇 위젯 모드)
+# 다나와 스타일 통합 CSS
 st.markdown("""
 <style>
     /* 전체 페이지 스타일 */
     .main {
         padding: 0 !important;
-        background-color: #ffffff;
+        background-color: #f7f8fa !important;
     }
     
-    /* 헤더 숨기기 */
+    /* Streamlit 기본 헤더 숨기기 */
     header[data-testid="stHeader"] {
         display: none;
     }
@@ -53,8 +53,159 @@ st.markdown("""
     
     /* 메인 컨테이너 */
     .block-container {
-        padding: 1rem !important;
+        padding: 0 !important;
         max-width: 100% !important;
+    }
+    
+    /* 다나와 스타일 헤더 */
+    .danawa-header {
+        background-color: #fff;
+        border-bottom: 2px solid #ff6b00;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        margin-bottom: 20px;
+    }
+    
+    .danawa-header-top {
+        background-color: #ff6b00;
+        color: white;
+        padding: 8px 0;
+        font-size: 12px;
+    }
+    
+    .danawa-header-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .danawa-logo {
+        font-size: 32px;
+        font-weight: 900;
+        color: #ff6b00;
+        text-decoration: none;
+        letter-spacing: -1px;
+    }
+    
+    .danawa-search-box {
+        flex: 1;
+        max-width: 650px;
+        margin: 0 40px;
+        position: relative;
+    }
+    
+    .danawa-search-input {
+        width: 100%;
+        padding: 14px 120px 14px 20px;
+        border: 2px solid #ff6b00;
+        border-radius: 4px;
+        font-size: 16px;
+        outline: none;
+    }
+    
+    .danawa-search-button {
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #ff6b00;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+    }
+    
+    .danawa-search-button:hover {
+        background-color: #e55a00;
+    }
+    
+    /* 제품 리스트 영역 */
+    .product-list-container {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 0 20px;
+        display: flex;
+        gap: 20px;
+    }
+    
+    .product-list-main {
+        flex: 1;
+        background-color: white;
+        border-radius: 4px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    /* 플로팅 챗봇 버튼 */
+    .floating-chatbot {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+    
+    .floating-chatbot-button {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6336FF 0%, #5229E6 100%);
+        color: white;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(99, 54, 255, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        transition: all 0.3s ease;
+    }
+    
+    .floating-chatbot-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(99, 54, 255, 0.5);
+    }
+    
+    /* 챗봇 창 */
+    .chatbot-window {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        width: 420px;
+        height: 650px;
+        background-color: white;
+        border-radius: 20px;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+        z-index: 9998;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .chatbot-window.open {
+        display: flex;
+    }
+    
+    .chatbot-header {
+        background: linear-gradient(135deg, #6336FF 0%, #5229E6 100%);
+        color: white;
+        padding: 18px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .chatbot-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
     }
     
     /* 버튼 스타일 */
@@ -1010,11 +1161,141 @@ if initial_search:
             st.session_state.chat_history.append({'role': 'bot', 'content': bot_response})
             st.rerun()
 
+# 다나와 스타일 헤더 HTML
+header_html = """
+<div class="danawa-header">
+    <div class="danawa-header-top">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 20px;">
+                <a href="#" style="color: white; text-decoration: none; opacity: 0.9;">회원가입</a>
+                <a href="#" style="color: white; text-decoration: none; opacity: 0.9;">로그인</a>
+                <a href="#" style="color: white; text-decoration: none; opacity: 0.9;">고객센터</a>
+            </div>
+        </div>
+    </div>
+    <div class="danawa-header-container">
+        <a href="#" class="danawa-logo">다나와</a>
+        <div class="danawa-search-box">
+            <input type="text" class="danawa-search-input" id="danawa-search-input" placeholder="노트북을 검색하세요" value="">
+            <button class="danawa-search-button" onclick="handleDanawaSearch()">검색</button>
+        </div>
+        <nav style="display: flex; gap: 25px; align-items: center;">
+            <a href="#" style="color: #333; text-decoration: none; font-size: 14px; font-weight: 500;">카테고리</a>
+            <a href="#" style="color: #333; text-decoration: none; font-size: 14px; font-weight: 500;">특가</a>
+            <a href="#" style="color: #333; text-decoration: none; font-size: 14px; font-weight: 500;">랭킹</a>
+        </nav>
+    </div>
+</div>
+
+<script>
+function handleDanawaSearch() {
+    const query = document.getElementById('danawa-search-input').value.trim();
+    if (!query) return;
+    
+    const keywords = ['노트북', '랩탑', 'laptop', 'notebook', 'pc', '컴퓨터', '데스크탑', 'desktop'];
+    const queryLower = query.toLowerCase();
+    const hasKeyword = keywords.some(keyword => queryLower.includes(keyword.toLowerCase()));
+    
+    if (hasKeyword) {
+        // Streamlit의 챗봇에 검색어 전달
+        window.location.href = window.location.pathname + '?search=' + encodeURIComponent(query);
+    }
+}
+
+// Enter 키 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('danawa-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleDanawaSearch();
+            }
+        });
+    }
+});
+</script>
+"""
+
+# 플로팅 챗봇 버튼 및 창 HTML
+floating_chatbot_html = """
+<div class="floating-chatbot">
+    <div class="chatbot-window" id="chatbot-window">
+        <div class="chatbot-header">
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600;">💻 테크 전문 쇼핑 가이드</h3>
+            <button onclick="closeChatbot()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer;">×</button>
+        </div>
+        <div class="chatbot-content" id="chatbot-content">
+            <!-- 챗봇 내용은 여기에 동적으로 추가 -->
+        </div>
+    </div>
+    <button class="floating-chatbot-button" onclick="toggleChatbot()" id="chatbot-toggle-btn">💬</button>
+</div>
+
+<script>
+let chatbotOpen = false;
+
+function toggleChatbot() {
+    const window = document.getElementById('chatbot-window');
+    const btn = document.getElementById('chatbot-toggle-btn');
+    chatbotOpen = !chatbotOpen;
+    
+    if (chatbotOpen) {
+        window.classList.add('open');
+        btn.textContent = '✕';
+        // 챗봇 내용을 Streamlit 채팅 영역으로 스크롤
+        setTimeout(() => {
+            const content = document.getElementById('chatbot-content');
+            if (content) {
+                content.scrollTop = content.scrollHeight;
+            }
+        }, 100);
+    } else {
+        window.classList.remove('open');
+        btn.textContent = '💬';
+    }
+}
+
+function closeChatbot() {
+    const window = document.getElementById('chatbot-window');
+    const btn = document.getElementById('chatbot-toggle-btn');
+    window.classList.remove('open');
+    btn.textContent = '💬';
+    chatbotOpen = false;
+}
+
+// Streamlit 채팅 영역을 챗봇 창에 복사
+function syncChatbotContent() {
+    const streamlitChat = document.querySelector('.block-container');
+    const chatbotContent = document.getElementById('chatbot-content');
+    
+    if (streamlitChat && chatbotContent) {
+        // Streamlit 채팅 내용을 챗봇 창에 복사
+        const chatMessages = streamlitChat.querySelectorAll('.chat-message, .product-card');
+        chatbotContent.innerHTML = '';
+        chatMessages.forEach(msg => {
+            chatbotContent.appendChild(msg.cloneNode(true));
+        });
+    }
+}
+
+// 주기적으로 챗봇 내용 동기화
+setInterval(syncChatbotContent, 500);
+</script>
+"""
+
 # API 키 확인
 if not st.session_state.gemini_api_key or not st.session_state.tavily_api_key:
     st.error("⚠️ API 키가 설정되지 않았습니다.")
 else:
-    # 채팅 인터페이스 (서브헤더 제거)
+    # 다나와 헤더 표시
+    st.markdown(header_html, unsafe_allow_html=True)
+    
+    # 제품 리스트 컨테이너 시작
+    st.markdown('<div class="product-list-container">', unsafe_allow_html=True)
+    st.markdown('<div class="product-list-main">', unsafe_allow_html=True)
+    
+    # 페이지 제목
+    st.markdown('<h1 style="font-size: 22px; font-weight: 700; color: #333; margin-bottom: 15px;">노트북 검색 결과</h1>', unsafe_allow_html=True)
     
     # 채팅 히스토리 표시
     for message in st.session_state.chat_history:
@@ -1589,3 +1870,10 @@ else:
                 st.session_state.spec_info = None
                 st.session_state.chat_history = []
                 st.rerun()
+    
+    # 제품 리스트 컨테이너 닫기
+    st.markdown('</div>', unsafe_allow_html=True)  # product-list-main 닫기
+    st.markdown('</div>', unsafe_allow_html=True)  # product-list-container 닫기
+    
+    # 플로팅 챗봇 버튼 및 창 추가
+    st.markdown(floating_chatbot_html, unsafe_allow_html=True)

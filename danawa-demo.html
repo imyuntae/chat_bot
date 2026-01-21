@@ -866,16 +866,19 @@
 
     <script>
         // Streamlit 서버 URL 설정
-        // URL 파라미터에서 streamlit_url을 읽거나, 기본값 사용
+        // 프록시 서버를 통해 iframe 임베딩 (X-Frame-Options 헤더 제거)
         const urlParams = new URLSearchParams(window.location.search);
-        const streamlitUrl = urlParams.get('streamlit_url') || 'http://localhost:8501';
+        // 프록시 서버 URL (로컬에서 실행 중인 프록시 서버)
+        const proxyUrl = urlParams.get('proxy_url') || 'http://localhost:8080';
+        const streamlitUrl = urlParams.get('streamlit_url') || 'https://chatbot-cv8vu6jdzxfulenualhxaa.streamlit.app';
         
-        // iframe src 설정
+        // iframe src 설정 (프록시 서버 사용)
         const chatbotIframe = document.getElementById('chatbot-iframe');
-        chatbotIframe.src = streamlitUrl;
+        chatbotIframe.src = proxyUrl;
         
-        console.log('챗봇 URL:', streamlitUrl);
-        console.log('URL 파라미터로 streamlit_url을 지정하려면: ?streamlit_url=https://your-app.streamlit.app');
+        console.log('프록시 서버 URL:', proxyUrl);
+        console.log('Streamlit Cloud URL:', streamlitUrl);
+        console.log('프록시 서버를 실행하려면: python proxy_server.py');
         
         // 챗봇 열기/닫기
         const chatbotButton = document.getElementById('chatbot-button');
@@ -892,6 +895,10 @@
         });
 
         chatbotClose.addEventListener('click', function() {
+            if (chatbotPopup && !chatbotPopup.closed) {
+                chatbotPopup.close();
+                chatbotPopup = null;
+            }
             chatbotWindow.classList.remove('open');
             chatbotButton.textContent = '💬';
         });
@@ -918,30 +925,10 @@
                     chatbotButton.textContent = '✕';
                 }
                 
-                // 챗봇 iframe에 검색어 전달 (URL 쿼리 파라미터로)
-                const iframe = document.getElementById('chatbot-iframe');
-                const currentUrl = new URL(iframe.src);
-                currentUrl.searchParams.set('search', query);
-                iframe.src = currentUrl.toString();
-                
-                // iframe이 로드될 때까지 대기
-                iframe.onload = function() {
-                    console.log('챗봇 iframe 로드 완료');
-                };
-                
-                // iframe이 로드될 때까지 잠시 대기
-                setTimeout(() => {
-                    // iframe이 로드되면 메시지 전송 (postMessage 사용)
-                    try {
-                        iframe.contentWindow.postMessage({
-                            type: 'search_query',
-                            query: query
-                        }, '*');
-                    } catch (e) {
-                        // CORS 오류가 발생할 수 있으므로 무시 (URL 파라미터로 이미 전달됨)
-                        console.log('postMessage 전송 실패 (정상):', e);
-                    }
-                }, 500);
+                // 프록시 서버를 통해 검색어 전달 (URL 쿼리 파라미터로)
+                const urlWithSearch = new URL(proxyUrl);
+                urlWithSearch.searchParams.set('search', query);
+                chatbotIframe.src = urlWithSearch.toString();
             } else {
                 // 키워드가 없으면 일반 검색 알림만 표시
                 alert(`"${query}" 검색 기능은 데모용입니다.`);
