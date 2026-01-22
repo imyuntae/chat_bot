@@ -374,25 +374,39 @@ def generate_products_html(products: List[Dict], product_descriptions: Dict = No
         product_url = product.get('URL', '') or product.get('상품 상세 URL', '')
         url_str = None
         
-        if product_url and str(product_url).strip() and str(product_url) != 'nan':
-            # URL이 유효한지 확인 (http 또는 https로 시작)
-            url_str = str(product_url).strip()
-            if not url_str.startswith('http'):
-                # 상대 경로인 경우 다나와 도메인 추가
-                if url_str.startswith('/'):
-                    url_str = 'https://www.danawa.com' + url_str
-                elif 'danawa.com' not in url_str:
-                    url_str = 'https://www.danawa.com/' + url_str
+        # URL 값 정리 (NaN, None, 빈 문자열 처리)
+        if product_url:
+            product_url_str = str(product_url).strip()
+            # NaN, None, 빈 문자열 체크
+            if product_url_str and product_url_str.lower() not in ['nan', 'none', 'null', '']:
+                # URL이 유효한지 확인 (http 또는 https로 시작)
+                if product_url_str.startswith('http://') or product_url_str.startswith('https://'):
+                    url_str = product_url_str
+                elif product_url_str.startswith('/'):
+                    # 상대 경로인 경우 다나와 도메인 추가
+                    url_str = 'https://www.danawa.com' + product_url_str
+                elif 'danawa.com' in product_url_str:
+                    # danawa.com이 포함되어 있으면 https 추가
+                    url_str = 'https://' + product_url_str if not product_url_str.startswith('http') else product_url_str
+                else:
+                    # 그 외의 경우 다나와 도메인 추가
+                    url_str = 'https://www.danawa.com/' + product_url_str
         
         # URL이 없으면 제품명으로 다나와 검색 페이지로 연결
         if not url_str:
             product_name_for_search = product.get("상품명", "")
-            # 제품명을 URL 인코딩하여 검색 URL 생성
-            encoded_name = urllib.parse.quote(product_name_for_search)
-            url_str = f'https://search.danawa.com/dsearch.php?query={encoded_name}'
+            if product_name_for_search:
+                # 제품명을 URL 인코딩하여 검색 URL 생성
+                encoded_name = urllib.parse.quote(product_name_for_search)
+                url_str = f'https://search.danawa.com/dsearch.php?query={encoded_name}'
+            else:
+                # 제품명도 없으면 기본 검색 페이지
+                url_str = 'https://search.danawa.com/'
         
-        url_escaped = escape_html(url_str)
-        products_html += f'<a href="{url_escaped}" target="_blank" style="display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem; background-color: #6336FF; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">🔗 다나와 최저가 확인</a>'
+        # URL이 확실히 있는 경우에만 링크 버튼 표시
+        if url_str:
+            url_escaped = escape_html(url_str)
+            products_html += f'<a href="{url_escaped}" target="_blank" style="display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem; background-color: #6336FF; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">🔗 다나와 최저가 확인</a>'
         
         products_html += '</div>'
     
@@ -631,18 +645,29 @@ def match_products_by_spec(spec_info: Dict, products_df: pd.DataFrame, product_t
     if products_df is None or len(products_df) == 0:
         return []
     
-    # 제품 타입 필터링 (더 엄격하게)
+    # 제품 타입 필터링 (더 유연하게 - 상품명과 스펙 모두 확인)
     if product_type == '노트북':
         # 노트북만 포함하고, 데스크탑/PC는 제외
+        # 상품명 또는 스펙에 노트북 키워드가 있으면 포함
+        spec_col = products_df.get('상세스펙', products_df.get('스펙', pd.Series([''] * len(products_df))))
         filtered_df = products_df[
-            products_df['상품명'].str.contains('노트북|랩탑|laptop', case=False, na=False) &
-            ~products_df['상품명'].str.contains('데스크탑|PC|컴퓨터', case=False, na=False)
+            (
+                products_df['상품명'].str.contains('노트북|랩탑|laptop', case=False, na=False) |
+                spec_col.str.contains('노트북|랩탑|laptop|인치|kg|배터리', case=False, na=False)
+            ) &
+            ~products_df['상품명'].str.contains('데스크탑|PC|컴퓨터|미니PC', case=False, na=False) &
+            ~spec_col.str.contains('데스크탑|미니PC', case=False, na=False)
         ]
     elif product_type in ['PC', '데스크탑']:
         # 데스크탑/PC만 포함하고, 노트북은 제외
+        spec_col = products_df.get('상세스펙', products_df.get('스펙', pd.Series([''] * len(products_df))))
         filtered_df = products_df[
-            (products_df['상품명'].str.contains('데스크탑|PC|컴퓨터', case=False, na=False)) &
-            ~products_df['상품명'].str.contains('노트북|랩탑|laptop', case=False, na=False)
+            (
+                products_df['상품명'].str.contains('데스크탑|PC|컴퓨터|미니PC', case=False, na=False) |
+                spec_col.str.contains('데스크탑|미니PC', case=False, na=False)
+            ) &
+            ~products_df['상품명'].str.contains('노트북|랩탑|laptop', case=False, na=False) &
+            ~spec_col.str.contains('노트북|랩탑|laptop|인치.*kg', case=False, na=False)
         ]
     else:
         filtered_df = products_df
@@ -662,6 +687,12 @@ def match_products_by_spec(spec_info: Dict, products_df: pd.DataFrame, product_t
         score = 0
         spec_text = str(row.get('상세스펙', row.get('스펙', '')))
         product_name = str(row.get('상품명', ''))
+        
+        # 스펙이 비어있거나 제품명과 동일한 경우, 제품명에서 스펙 정보 추출 시도
+        if not spec_text or spec_text == product_name or len(spec_text.strip()) < 10:
+            # 제품명에서 스펙 정보가 있는지 확인
+            if product_name and len(product_name) > len(spec_text):
+                spec_text = product_name  # 제품명을 스펙으로 사용
         
         # 제품 스펙 추출
         product_cpu = extract_cpu_from_spec(spec_text)
@@ -806,11 +837,23 @@ def match_products_by_spec(spec_info: Dict, products_df: pd.DataFrame, product_t
                 # 휴대용 불필요하면 무게 무관
                 score += 5
         
+        # URL 가져오기 (여러 컬럼명 시도)
+        product_url = row.get('URL', '') or row.get('상품 상세 URL', '') or row.get('url', '')
+        # pandas Series의 경우 값이 NaN일 수 있으므로 체크
+        try:
+            if pd.isna(product_url):
+                product_url = ''
+        except:
+            # pd.isna가 없거나 에러가 나면 문자열로 변환 후 체크
+            product_url_str = str(product_url).strip()
+            if product_url_str.lower() in ['nan', 'none', 'null', '']:
+                product_url = ''
+        
         scored_products.append({
             '상품명': product_name,
             '최저가': row.get('최저가', row.get('가격', '')),
             '상세스펙': row.get('상세스펙', row.get('스펙', '')),
-            'URL': row.get('URL', row.get('상품 상세 URL', '')),
+            'URL': str(product_url) if product_url else '',
             '별점': row.get('별점', ''),
             '리뷰 수': row.get('리뷰 수', ''),
             'score': score
